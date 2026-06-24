@@ -1,0 +1,20 @@
+[project]
+name = "expense-manager-dashboard"
+version = "0.1.0"
+description = "Manager dashboard for the expense approval workflow"
+requires-python = ">=3.11"
+
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.20.0",
+    "google-adk[gcp]>=2.0.0,<3.0.0",
+    "google-cloud-aiplatform[agent-engines]>=1.156.0",
+    "python-dotenv>=1.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["main.py"]

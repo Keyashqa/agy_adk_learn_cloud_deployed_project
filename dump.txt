@@ -1,0 +1,153 @@
+🚀 From Zero to Production AI Agent in Minutes — Most People Don't Know This Tool Exists
+
+I just deployed a production-grade AI agent to Google Cloud in under an hour.
+No manual Terraform. No Dockerfile. No boilerplate FastAPI setup.
+Just one tool: agents-cli.
+
+Here's what it took:
+
+─────────────────────────────────────────
+STEP 1 — Scaffold the project
+─────────────────────────────────────────
+$ agents-cli scaffold create my-agent --agent adk --prototype
+
+Gives you a fully wired ADK project — agent logic, FastAPI server,
+OpenTelemetry, session management, eval harness. All ready to go.
+
+─────────────────────────────────────────
+STEP 2 — Build your agent
+─────────────────────────────────────────
+Write your agent logic in app/agent.py.
+Test it interactively with:
+
+$ agents-cli playground
+
+No deployment needed. Iterate fast.
+
+─────────────────────────────────────────
+STEP 3 — Add production deployment
+─────────────────────────────────────────
+$ agents-cli scaffold enhance . --deployment-target agent_runtime
+
+This generates:
+→ Terraform for IAM, service accounts, Cloud Storage, BigQuery telemetry
+→ Agent Runtime entry point (AgentEngineApp)
+→ Integration test suite
+→ Locked dependency requirements
+
+─────────────────────────────────────────
+STEP 4 — Lock dependencies + dry run
+─────────────────────────────────────────
+$ uv lock
+$ agents-cli deploy --dry-run
+
+Validates your entire config before touching the cloud.
+Catches issues early. Zero cost.
+
+─────────────────────────────────────────
+STEP 5 — Deploy to Google Agent Runtime
+─────────────────────────────────────────
+$ agents-cli deploy
+
+That's it. One command. It handles:
+→ Source bundling
+→ Dependency resolution
+→ Vertex AI Agent Runtime provisioning
+→ Health checks and operation polling
+
+─────────────────────────────────────────
+STEP 6 — Test the live agent
+─────────────────────────────────────────
+# Auto-approve path (under $100 — no LLM, instant approval):
+agents-cli run '{"amount": 45.00, "submitter": "Karthikeyan", "category": "meals", "description": "Lunch at Chipotle", "date": "2026-06-24"}' --url "https://us-east1-aiplatform.googleapis.com/v1/projects/1064204015476/locations/us-east1/reasoningEngines/5773720275405242368" --mode adk
+
+# Human-review path ($100+ — LLM risk assessment + approval gate):
+agents-cli run '{"amount": 250.00, "submitter": "Karthikeyan", "category": "travel", "description": "Flight to NYC for client meeting", "date": "2026-06-24"}' --url "https://us-east1-aiplatform.googleapis.com/v1/projects/1064204015476/locations/us-east1/reasoningEngines/5773720275405242368" --mode adk
+
+Get a real response from your production agent in seconds.
+
+─────────────────────────────────────────
+
+What agents-cli replaces:
+✗ Hand-written Terraform (IAM, service accounts, storage)
+✗ Manual Dockerfile and container builds
+✗ Direct vertexai SDK calls for deployment
+✗ Custom eval pipelines
+✗ CI/CD boilerplate from scratch
+
+What you get instead:
+✓ agents-cli scaffold  — project + infra templates
+✓ agents-cli deploy    — one-command cloud deployment
+✓ agents-cli eval      — built-in evaluation loop
+✓ agents-cli run       — test local or remote agents instantly
+✓ agents-cli infra     — Terraform provisioning without writing TF
+
+The only rough edge: if your project has a non-standard layout
+(agent code outside the agent_directory), you need to move it inside
+before deploy bundles it. Once aligned, everything just works.
+
+Install it:
+$ uv tool install google-agents-cli
+
+If you're building AI agents on Google Cloud and not using this —
+you're doing it the hard way.
+
+#AI #Agents #GoogleCloud #VertexAI #ADK #MLOps #AgentDevelopment #Python
+
+─────────────────────────────────────────
+MANAGER DASHBOARD — submission_frontend/
+─────────────────────────────────────────
+# Live Cloud Run URL (public, no auth required):
+https://expense-manager-dashboard-1064204015476.us-east1.run.app
+
+# Install deps and run locally (restart after each code change):
+cd submission_frontend
+uv run uvicorn main:app --reload --port 8080
+
+# Tabs:
+#   Pending Approvals — shows all paused HITL sessions with approve/reject
+#   Submit Expense    — form UI to fire a new expense directly to Agent Runtime
+
+# Visit in browser:
+http://localhost:8080
+
+# Send a test expense for review (>=100 triggers human gate):
+agents-cli run '{"amount": 250.00, "submitter": "Karthikeyan", "category": "travel", "description": "Flight to NYC for client meeting", "date": "2026-06-24"}' --url "https://us-east1-aiplatform.googleapis.com/v1/projects/1064204015476/locations/us-east1/reasoningEngines/5773720275405242368" --mode adk
+
+# Send a low-value expense (auto-approved, no dashboard card):
+agents-cli run '{"amount": 45.00, "submitter": "Karthikeyan", "category": "meals", "description": "Lunch at Chipotle", "date": "2026-06-24"}' --url "https://us-east1-aiplatform.googleapis.com/v1/projects/1064204015476/locations/us-east1/reasoningEngines/5773720275405242368" --mode adk
+
+─────────────────────────────────────────
+PUB/SUB EVENT PIPELINE
+─────────────────────────────────────────
+# Skill reference (architecture, gotchas, all commands):
+.claude/skills/ambient-agent-pipeline/SKILL.md
+
+# Topics created:
+#   projects/mcp-test-487013/topics/expense-reports
+#   projects/mcp-test-487013/topics/expense-reports-dead-letter
+
+# Subscription created:
+#   projects/mcp-test-487013/subscriptions/expense-reports-push
+#   Push endpoint → https://us-east1-aiplatform.googleapis.com/v1/projects/1064204015476/locations/us-east1/reasoningEngines/5773720275405242368:query
+#   Auth: OIDC via pubsub-invoker@mcp-test-487013.iam.gserviceaccount.com
+#   Ack deadline: 600s (10 min), Dead-letter after 5 failed attempts
+
+# Publish a test event to the pipeline:
+gcloud pubsub topics publish expense-reports --message '{"amount": 250.00, "submitter": "Karthikeyan", "category": "travel", "description": "Flight to NYC", "date": "2026-06-24"}' --project mcp-test-487013
+
+# Inspect dead-letter messages (create a pull sub first if needed):
+gcloud pubsub subscriptions create expense-reports-dead-letter-pull --topic expense-reports-dead-letter --project mcp-test-487013
+gcloud pubsub subscriptions pull expense-reports-dead-letter-pull --auto-ack --limit 10 --project mcp-test-487013
+
+# Verify subscription config:
+gcloud pubsub subscriptions describe expense-reports-push --project mcp-test-487013
+
+─────────────────────────────────────────
+REDEPLOY DASHBOARD (after code changes)
+─────────────────────────────────────────
+docker build -t expense-manager-dashboard:latest ./submission_frontend
+gcloud auth configure-docker us-east1-docker.pkg.dev --quiet
+docker tag expense-manager-dashboard:latest us-east1-docker.pkg.dev/mcp-test-487013/cloud-run-source-deploy/expense-manager-dashboard:latest
+docker push us-east1-docker.pkg.dev/mcp-test-487013/cloud-run-source-deploy/expense-manager-dashboard:latest
+gcloud run deploy expense-manager-dashboard --image us-east1-docker.pkg.dev/mcp-test-487013/cloud-run-source-deploy/expense-manager-dashboard:latest --region us-east1 --project mcp-test-487013 --allow-unauthenticated --port 8080 --set-env-vars "GOOGLE_CLOUD_PROJECT=mcp-test-487013,GOOGLE_CLOUD_LOCATION=us-east1,AGENT_RUNTIME_ID=projects/1064204015476/locations/us-east1/reasoningEngines/5773720275405242368"
