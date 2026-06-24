@@ -70,3 +70,6 @@ resource "google_project_iam_member" "vertex_ai_sa_permissions" {
   depends_on = [resource.google_project_service.services]
 }
 
+
+
+
